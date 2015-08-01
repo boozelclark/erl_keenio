@@ -1,0 +1,20 @@
+{application, erl_keenio,
+ [{description, "An OTP application"}
+ ,{vsn, "0.1.0"}
+ ,{registered, []}
+ ,{mod, {'keenio', []}}
+ ,{applications,
+   [kernel
+   ,stdlib
+   ,sasl
+   ,lager
+   ,inets
+   ,ssl
+   ]}
+ ,
+ {env, [
+     {project_id, "YOUR_PROJECT_ID"},
+     {write_key, "YOUR_WRITE_KEY"}
+ ]}
+ ,{modules, []}
+ ]}.
