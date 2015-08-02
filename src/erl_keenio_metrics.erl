@@ -28,9 +28,9 @@ get_metrics(Metrics) ->
 %% internal
 %%-------------------------------------------------------------------
 get_metric(vm_memory) ->
-  [node() | erlang:memory()];
+  [{node,node()} | erlang:memory()];
 get_metric(vm_statistics) ->
-  [node() |
+  [{node,node()}  |
     [{Key, convert_statistics(Key, get_statistics(Key))} || Key <- ?STATISTICS]
   ].
 
