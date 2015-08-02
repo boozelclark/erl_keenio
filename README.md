@@ -11,7 +11,7 @@ Make sure that the erl_keenio application is running.
 
 To add a Keen IO event call `keenio:add_event(event_category,{some_event_truple, some_value}).` To add multiple events call  `keenio:add_events(SomeEventsTruple).``
 
-You can periodically report VM statistics to Keen IO by calling `keenio:report_periodically(Seconds, Parameters).` where Parameters can currently be the atom `all` or a list of specific options which currently only supports `[memory]`. In future more options will be added.
+You can periodically report VM statistics to Keen IO by calling `keenio:report_periodically(Seconds, Parameters).` where Parameters can currently be the atom `all` or a list of specific options which currently only supports `vm_memory` and `vm_statistics`. In future more options will be added.
 
 You can read the Keen IO [data collection page](https://keen.io/docs/data-collection/) and [data modeling guide](https://keen.io/guides/data-modeling-guide/) to get an idea of the event structure. All input is parsed by [jiffy into](https://github.com/davisp/jiffy) JSON to be sent to Keen IO so what ever input you give the client it must be jiffy parseable into the Keen IO format.
 

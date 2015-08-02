@@ -1,5 +1,5 @@
 %%%-------------------------------------------------------------------
-%% @doc erl_keenio server.
+%% @doc erl_keenio client's OTP server.
 %% @end
 %%%-------------------------------------------------------------------
 
@@ -120,24 +120,25 @@ code_change(_OldVsn, State, _Extra) ->
 %% Internal functions
 %%---------------------------------------------------------------------------
 vm_stats_report(Parameters) ->
-  case Parameters of
-    all ->
-      Report = [{node,node()} | erlang:memory()],
-      send_event(vm_memory,Report);
-    [memory] ->
-      Report = [{node,node()} | erlang:memory()],
-      send_event(vm_memory,Report);
-    _ ->
-      lager:erros([{app,erl_keenio},{module,?MODULE}],"erl_keenio_server - Unknown Report Parameters ~p",[Parameters])
-  end.
+   Report = erl_keenio_metrics:get_metrics(Parameters),
+   send_events(Report).
+%  case Parameters of
+%    all ->
+%      Report = [{node,node()} | erlang:memory()],
+%      send_event(vm_memory,Report);
+%    [memory] ->
+%      Report = [{node,node()} | erlang:memory()],
+%      send_event(vm_memory,Report);
+%    _ ->
+%      lager:erros([{app,erl_keenio},{module,?MODULE}],"erl_keenio_server - Unknown Report Parameters ~p",[Parameters])
+%  end.
 
 send_event(EventCollection,Event) ->
   if is_list(Event) ->
       WholeEvent = {Event} ;
     true ->
       WholeEvent = {[Event]}
-    end,
-
+  end,
   try
     EventCollectionList = atom_to_list(EventCollection),
     Body = jiffy:encode(WholeEvent),
@@ -149,8 +150,13 @@ send_event(EventCollection,Event) ->
   end.
 
 send_events(Events) ->
+  if is_list(Events) ->
+      WholeEvent = {Events} ;
+    true ->
+      WholeEvent = Events
+  end,
   try
-    Body = jiffy:encode(Events),
+    Body = jiffy:encode(WholeEvent),
     post_events(Body)
   catch
     Error:Reason ->
