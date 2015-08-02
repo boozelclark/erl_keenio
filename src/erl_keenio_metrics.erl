@@ -20,7 +20,7 @@
 %% api
 %%-------------------------------------------------------------------
 get_metrics(all) ->
-  get_metrics([vm_memory, vm_statistics, vm_system_info]);
+  get_metrics([vm_memory, vm_statistics]);
 get_metrics(Metrics) ->
   [{Metric, [{get_metric(Metric)}]} || Metric <- Metrics].
 
