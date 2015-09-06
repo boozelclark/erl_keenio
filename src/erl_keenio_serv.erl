@@ -16,7 +16,7 @@
 
 
 %% API
--export([start_link/0, add_event/2, add_events/1, send_event/2, send_events/1, report_periodically/2, cancel_periodic_report/0, vm_stats_report/1]).
+-export([start_link/0, add_event/2, add_events/1, send_event/2, send_events/1, report_periodically/3, cancel_periodic_report/0, periodic_report/2]).
 
 %% gen_server callbacks
 -export([init/1,
@@ -42,8 +42,8 @@ add_event(EventCollection,Event) ->
 add_events(Events) ->
   gen_server:cast(?SERVER,{events, Events}).
 
-report_periodically(Seconds,Parameters) ->
-  gen_server:call(?SERVER,{periodic_report, add, {Seconds, Parameters}}).
+report_periodically(Seconds,Parameters, Fn) ->
+  gen_server:call(?SERVER,{periodic_report, add, {Seconds, Parameters, Fn}}).
 
 cancel_periodic_report() ->
   gen_server:call(?SERVER,{periodic_report, remove}).
@@ -55,16 +55,16 @@ cancel_periodic_report() ->
 init([]) ->
     {ok, #state{}}.
 
-handle_call({periodic_report, add, {Seconds, Parameters}}, _From, S = #state{tref=TRef}) ->
+handle_call({periodic_report, add, {Seconds, Parameters, Fn}}, _From, S = #state{tref=TRef}) ->
   lager:info([{app,erl_keenio},{module,?MODULE}],"erl_keenio_server - Periodic VM Stats reporting enabled every ~p second(s)",[Seconds]),
   case TRef of
     not_set ->
-      {ok,NewTRef} = timer:send_interval(Seconds* 1000, ?SERVER,{periodic_report, Parameters}),
-      ?SERVER ! {periodic_report, Parameters};
+      {ok,NewTRef} = timer:send_interval(Seconds* 1000, ?SERVER,{periodic_report, Parameters, Fn}),
+      ?SERVER ! {periodic_report, Parameters, Fn};
     _ ->
       timer:cancel(TRef),
-      {ok,NewTRef}  = timer:send_interval(Seconds* 1000, ?SERVER,{periodic_report, Parameters}),
-      ?SERVER!{periodic_report, Parameters}
+      {ok,NewTRef}  = timer:send_interval(Seconds* 1000, ?SERVER,{periodic_report, Parameters, Fn}),
+      ?SERVER!{periodic_report, Parameters, Fn}
   end,
   {reply, ok, S#state{ tref=NewTRef}};
 
@@ -92,9 +92,9 @@ handle_cast(Msg, State) ->
   lager:warning([{app,erl_keenio},{module,?MODULE}],"erl_keenio_server - Unknown handle_cast ~p",[Msg]),
     {noreply, State}.
 
-handle_info({periodic_report, Parameters}, State) ->
+handle_info({periodic_report, Parameters, Fn}, State) ->
     lager:debug([{app,erl_keenio},{module,?MODULE}],"erl_keenio_server - Periodic Report ~p",[Parameters]),
-    monitor(process, spawn(?MODULE, vm_stats_report, [Parameters])),
+    monitor(process, spawn(?MODULE, periodic_report, [Parameters, Fn])),
     {noreply, State};
 
 handle_info({'DOWN',_Ref,_,_PID,normal}, State) ->
@@ -119,6 +119,16 @@ code_change(_OldVsn, State, _Extra) ->
 %%---------------------------------------------------------------------------
 %% Internal functions
 %%---------------------------------------------------------------------------
+periodic_report(Parameters, Functions) ->
+  vm_stats_report(Parameters),
+  call_callbacks(Functions).
+
+call_callbacks(Function) when is_function(Function)->
+  Report = Function(),
+  send_events(Report);
+call_callbacks(_)->
+        ok.
+
 vm_stats_report(Parameters) ->
    Report = erl_keenio_metrics:get_metrics(Parameters),
    send_events(Report).
@@ -145,7 +155,7 @@ send_event(EventCollection,Event) ->
     post_event(EventCollectionList, Body)
   catch
     Error:Reason ->
-    lager:error([{app,erl_keenio},{module,?MODULE}],"erl_keenio_server - Could not parse your event to JSON due to ~p",[Reason]),
+    lager:error([{app,erl_keenio},{module,?MODULE}],"erl_keenio_server - Could not parse your event to JSON due to ~p~n~p",[Reason,WholeEvent]),
     {Error, Reason}
   end.
 
@@ -160,7 +170,7 @@ send_events(Events) ->
     post_events(Body)
   catch
     Error:Reason ->
-    lager:error([{app,erl_keenio},{module,?MODULE}],"erl_keenio_server - Could not parse your events to JSON due to ~p",[Reason]),
+    lager:error([{app,erl_keenio},{module,?MODULE}],"erl_keenio_server - Could not parse your events to JSON due to ~p~n~p",[Reason,WholeEvent]),
     {Error, Reason}
   end.
 
