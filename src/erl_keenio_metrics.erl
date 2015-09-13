@@ -20,7 +20,7 @@
 %% api
 %%-------------------------------------------------------------------
 get_metrics(all) ->
-  get_metrics([vm_memory, vm_statistics, os_mon_disk, os_mon_mem]);
+  get_metrics([vm_memory, vm_statistics, os_mon_disk, os_mon_mem, os_mon_cpu]);
 get_metrics(Metrics) ->
   [{Metric, [{get_metric(Metric)}]} || Metric <- Metrics].
 
@@ -38,7 +38,16 @@ get_metric(os_mon_disk) ->
     [{list_to_binary(Disk), Usage} || {Disk,_Size,Usage} <- disksup:get_disk_data()]
   ];
 get_metric(os_mon_mem) ->
-  [{node,node()}  | memsup:get_system_memory_data()].
+  [{node,node()}  | memsup:get_system_memory_data()];
+get_metric(os_mon_cpu) ->
+  SystemLoad = cpu_sup:avg5(),
+  PercentLoad = 100 * (1 - 50/(50 + SystemLoad)),
+  [
+    {node,node()},
+    {percent_load,PercentLoad},
+    {utilization,cpu_sup:util()},
+    {system_load,SystemLoad}
+  ].
 
 get_statistics(Key) ->
     try erlang:statistics(Key) catch
