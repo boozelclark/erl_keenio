@@ -20,7 +20,7 @@
 %% api
 %%-------------------------------------------------------------------
 get_metrics(all) ->
-  get_metrics([vm_memory, vm_statistics]);
+  get_metrics([vm_memory, vm_statistics, os_mon_disk, os_mon_mem]);
 get_metrics(Metrics) ->
   [{Metric, [{get_metric(Metric)}]} || Metric <- Metrics].
 
@@ -32,7 +32,13 @@ get_metric(vm_memory) ->
 get_metric(vm_statistics) ->
   [{node,node()}  |
     [{Key, convert_statistics(Key, get_statistics(Key))} || Key <- ?STATISTICS]
-  ].
+  ];
+get_metric(os_mon_disk) ->
+  [{node,node()}  |
+    [{list_to_binary(Disk), Usage} || {Disk,_Size,Usage} <- disksup:get_disk_data()]
+  ];
+get_metric(os_mon_mem) ->
+  [{node,node()}  | memsup:get_system_memory_data()].
 
 get_statistics(Key) ->
     try erlang:statistics(Key) catch

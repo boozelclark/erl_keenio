@@ -151,7 +151,7 @@ send_event(EventCollection,Event) ->
   end,
   try
     EventCollectionList = atom_to_list(EventCollection),
-    Body = jiffy:encode(WholeEvent),
+    Body = jiffy:encode(WholeEvent,[escape_forward_slashes]),
     post_event(EventCollectionList, Body)
   catch
     Error:Reason ->
@@ -166,7 +166,7 @@ send_events(Events) ->
       WholeEvent = Events
   end,
   try
-    Body = jiffy:encode(WholeEvent),
+    Body = jiffy:encode(WholeEvent,[escape_forward_slashes]),
     post_events(Body)
   catch
     Error:Reason ->

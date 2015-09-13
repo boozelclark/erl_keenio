@@ -42,9 +42,9 @@ cancel_periodic_report() ->
 %% Internal functions
 %%====================================================================
 
-%%Fn = fun() -> test_f() end
+%%Fn = fun() -> keenio:test_f() end
 
 test_f() ->
   lager:info("CALLED!!!!!!!!!!!!!!!"),
-  {[{crew_serv, [{[{node,node()} | erlang:memory()]}]}]}.
+  {[{test, [{[{node,node()} | erlang:memory()]}]}]}.
 %%
